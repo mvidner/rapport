@@ -70,6 +70,26 @@ def edit_report(report=None, type="email", email_part="body"):
         report_file = "index.html"
     subprocess.call([editor, os.path.join(report_path, report_file)])
 
+class DumbFuture(object):
+    def __init__(self, callable, *args):
+        self.callable = callable
+        self.args = args
+
+    def result(self):
+        return self.callable(* self.args)
+
+class SerialExecutor(object):
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(*exc):
+        return False            # propagate the exception
+
+    def submit(self, callable, *args):
+        return DumbFuture(callable, *args)
 
 def create_report(plugins, timeframe):
     report_date_string = timeframe.end.strftime(rapport.util.ISO8610_FORMAT)
@@ -77,11 +97,19 @@ def create_report(plugins, timeframe):
     if not os.path.exists(report_path):
         os.makedirs(report_path)
 
+    print("WOO")
+    if False:
+        executor_class = futures.ThreadPoolExecutor
+        futures_as_completed = futures.as_completed
+    else:
+        executor_class = SerialExecutor
+        futures_as_completed = lambda d: d.keys()
+
     # Execute all plugins in parallel and join on results:
     results = {}
-    with futures.ThreadPoolExecutor(max_workers=4) as executor:
+    with executor_class(max_workers=4) as executor:
         plugin_futures = dict((executor.submit(p.collect, timeframe), p) for p in plugins)
-        for future in futures.as_completed(plugin_futures):
+        for future in futures_as_completed(plugin_futures):
             plugin = plugin_futures[future]
             try:
                 if rapport.config.get_int("rapport", "verbosity") >= 2:
