@@ -150,9 +150,10 @@ environment`_ instead:
 
 .. code-block:: bash
 
+    $ zypper install python-devel
     $ virtualenv --system-site-packages .venv
     $ source .venv/bin/activate
-    (.venv)$ pip install -r tools/test-requires.txt 
+    (.venv)$ pip install -r test-requirements.txt
     (.venv)$ nosetests
 
 Lastly, if using virtualenv is too tedious or you want to test different
